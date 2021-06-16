@@ -1,0 +1,74 @@
+NITC/CSED/Winter 2020/III Year/CN
+18.05.2020
+Minutes
+The meeting was held to discuss the internal assessment and topics delivery for the third year
+B.Tech., CSE courses titled “CS3006D: Computer Networks and CS3093D: Networks
+Laboratory”. The meeting details are as follows:
+Date and Time
+: 18.05.2020 and 9.30 pm to 10.00 pm
+Venue
+: Online (Through Skype)
+The following members were present during the online meeting:
+1. Vasudevan, A. R., Course Faculty, CSED
+2. Arun Raj Kumar P., Course Faculty, CSED
+3. S.Hemanth, III B.Tech. CSE
+4. Prabodh T R, III B.Tech. CSE
+5. Siddharth Anil Kumar, III B.Tech. CSE
+1. CS3006D: Computer Networks
+● The topics covered upto March 2020 were informed to all the students through
+the lesson plan (sent by an email) and further topics from Transport and Network
+Layer such as TCP and UDP Header, TCP Connection process, TCP congestion
+Control process, IP Header, Classful and Classless IP addressing, Routing, and
+Forwarding to be covered from NPTEL lectures and slides (will be shared to
+students)
+● The midterm exam was conducted and evaluated for 30 Marks. Students who
+missed midterm exams with valid medical reasons (informed prior to the course
+faculty) may be given a retest online. Such students should forward the request
+mail through FA and HoD for online retest. Last date for sending the request is
+31, May 2020. ​ If students have already taken permission from FA and HoD
+before lockdown, they could send the scanned copy of the same.
+● The assignment components are to be evaluated for 30 Marks. The assignment
+includes Mini Project (or) Quiz+Seminar+Report (or) Quiz+Tool demonstration.
+● Students chosen Quiz+Seminar+Report are expected to prepare a powerpoint
+presentation on the topic RELATED to any of the layers in TCP/IP protocol stack.
+The topic need not be from the syllabus. Students may refer to Magazines
+related to Networking, select interesting and recent topics for the presentation.
+Students should read the article and upload a presentation to the shared dropbox
+“CS3006D”​ . Students may submit a report (not more than two pages) on the
+same topic answering the following questions:
+1. Which layer of the TCP/IP protocol stack, the topic related with?
+2. What is the new or novel idea in the topic chosen?
+3. What attracted you to choose the topic (technical answer)?
+4. How do you see the benefit in coming years in the networking industry?
+5. Any drawback or idea that you identified the topic to meet the future
+requirements?
+Contd. ... (2)●
+●
+●
+-2-
+Students chosen for the Mini Project and Quiz+Tool demonstration are expected
+to upload their project work (recorded video presentation) to the shared dropbox
+A report maximum of two pages describing the hardware, software,
+framework/architecture of the demonstrated work with respect to the problem
+definition, and the contributions is to be uploaded in the same dropbox.
+Students may upload the doc/ppt/video file with name in the format
+"RollNo_FirstName.pdf",
+"RollNo_FirstName.pptx", "RollNo_FirstName.mp4"
+under the corresponding folder in the shared dropbox.
+The deadline for uploading the presentations in dropbox is 17, June 2020.
+2. CS3093D: Networks Laboratory
+● There are 8 exercises in the list of experiments provided for the Networks Lab.
+Out of eight, 4 experiments were completed by students and evaluation
+completed. 20 internal marks were completed.
+● Midterm exam for 20 marks was completed. Students who missed midterm
+exams with valid medical reasons (informed prior to the course faculty) may be
+given a retest online. Such students should forward the request mail through FA
+and HoD for online retest. Last date for sending the request is 31, May 2020. ​ If
+students have already taken permission from FA and HoD before lockdown, they
+could send the scanned copy of the same.
+● The remaining 4 experiments could be completed and the codes could be
+uploaded to the dropbox folder titled “CS3093D”.
+● The deadline for uploading the experiments in dropbox is 21, June 2020.
+● For any queries related to network programming lab, the queries could be posted
+in Google classroom for the lab.
+***
