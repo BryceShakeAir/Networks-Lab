@@ -1,0 +1,1062 @@
+ted regular expression ( r )#.
+2. Compute nullable , rstpos , lastpos , and followpos for T , using the methods
+of Sections 3.9.3 and 3.9.4.
+3. Construct Dstates , the set of states of DFA D , and Dtran , the transition
+function for D , by the procedure of Fig. 3.62. The states of D are sets of
+positions in T . Initially, each state is \unmarked," and a state becomes
+\marked" just before we consider its out-transitions. The start state of
+D is rstpos ( n 0 ), where node n 0 is the root of T . The accepting states
+are those containing the position for the endmarker symbol #.
+2
+Example 3.37: We can now put together the steps of our running example
+to construct a DFA for the regular expression r = ( a j b )  abb . The syntax tree
+for ( r )# appeared in Fig. 3.56. We observed that for this tree, nullable is true
+only for the star-node, and we exhibited rstpos and lastpos in Fig. 3.59. The
+values of followpos appear in Fig. 3.60.
+The value of rstpos for the root of the tree is f 1 ; 2 ; 3 g , so this set is the
+start state of D . Call this set of states A . We must compute Dtran [ A; a ]
+and Dtran [ A; b ]. Among the positions of A , 1 and 3 correspond to a , while 2
+corresponds to b . Thus, Dtran [ A; a ] = followpos (1) [ followpos (3) = f 1 ; 2 ; 3 ; 4 g ,CHAPTER 3. LEXICAL ANALYSIS
+180
+initialize Dstates to contain only the unmarked state rstpos ( n 0 ),
+where n 0 is the root of syntax tree T for ( r )#;
+while ( there is an unmarked state S in Dstates ) f
+mark S ;
+for ( each input symbol a ) f
+let U be the union of followpos ( p ) for all p
+in S that correspond to a ;
+if ( U is not in Dstates )
+add U as an unmarked state to Dstates ;
+Dtran [ S; a ] = U ;
+g
+g
+Figure 3.62: Construction of a DFA directly from a regular expression
+and Dtran [ A; b ] = followpos (2) = f 1 ; 2 ; 3 g . The latter is state A , and so does
+not have to be added to Dstates , but the former, B = f 1 ; 2 ; 3 ; 4 g , is new, so we
+add it to Dstates and proceed to compute its transitions. The complete DFA is
+shown in Fig. 3.63. 2
+b
+b
+start
+123
+a
+a
+1234
+a
+b
+1235
+b
+1236
+a
+Figure 3.63: DFA constructed from Fig. 3.57
+3.9.6 Minimizing the Number of States of a DFA
+There can be many DFA's that recognize the same language. For instance,
+note
+,
+
+that the DFA's of Figs. 3.36 and 3.63 both recognize language L ( a j b )  abb .
+Not only do these automata have states with di erent names, but they don't
+even have the same number of states. If we implement a lexical analyzer as
+a DFA, we would generally prefer a DFA with as few states as possible, since
+each state requires entries in the table that describes the lexical analyzer.
+The matter of the names of states is minor. We shall say that two automata
+are the same up to state names if one can be transformed into the other by doing
+nothing more than changing the names of states. Figures 3.36 and 3.63 are not
+the same up to state names. However, there is a close relationship between theOPTIMIZATION OF DFA-BASED PATTERN MATCHERS
+181
+states of each. States A and C of Fig. 3.36 are actually equivalent, in the sense
+that neither is an accepting state, and on any input they transfer to the same
+state | to B on input a and to C on input b . Moreover, both states A and C
+behave like state 123 of Fig. 3.63. Likewise, state B of Fig. 3.36 behaves like
+state 1234 of Fig. 3.63, state D behaves like state 1235, and state E behaves
+like state 1236.
+It turns out that there is always a unique (up to state names) minimum
+state DFA for any regular language. Moreover, this minimum-state DFA can be
+constructed from any DFA
+for the  same language by grouping sets of equivalent
+,
+states. In the case of L ( a j b )  abb , Fig. 3.63 is the minimum-state DFA, and it
+can be constructed by partitioning the states of Fig. 3.36 as f A; C gf B gf D gf E g .
+In order to understand the algorithm for creating the partition of states
+that converts any DFA into its minimum-state equivalent DFA, we need to
+see how input strings distinguish states from one another. We say that string
+x distinguishes state s from state t if exactly one of the states reached from
+s and t by following the path with label x is an accepting state. State s is
+distinguishable from state t if there is some string that distinguishes them.
+Example 3.38: The empty string distinguishes any accepting state from any
+nonaccepting state. In Fig. 3.36, the string bb distinguishes state A from state
+B , since bb takes A to a nonaccepting state C , but takes B to accepting state
+E . 2
+The state-minimization algorithm works by partitioning the states of a DFA
+into groups of states that cannot be distinguished. Each group of states is then
+merged into a single state of the minimum-state DFA. The algorithm works
+by maintaining a partition, whose groups are sets of states that have not yet
+been distinguished, while any two states from di erent groups are known to be
+distinguishable. When the partition cannot be re ned further by breaking any
+group into smaller groups, we have the minimum-state DFA.
+Initially, the partition consists of two groups: the accepting states and the
+nonaccepting states. The fundamental step is to take some group of the current
+partition, say A = f s 1 ; s 2 ; : : : ; s k g , and some input symbol a , and see whether
+a can be used to distinguish between any states in group A . We examine the
+transitions from each of s 1 ; s 2 ; : : : ; s k on input a , and if the states reached fall
+into two or more groups of the current partition, we split A into a collection of
+groups, so that s i and s j are in the same group if and only if they go to the
+same group on input a . We repeat this process of splitting groups, until for
+no group, and for no input symbol, can the group be split further. The idea is
+formalized in the next algorithm.
+Algorithm 3.39: Minimizing the number of states of a DFA.
+INPUT: A DFA D with set of states S , input alphabet , start state s 0 , and
+set of accepting states F .
+OUTPUT: A DFA D 0 accepting the same language as D and having as few
+states as possible.CHAPTER 3. LEXICAL ANALYSIS
+182
+Why the State-Minimization Algorithm Works
+We need to prove two things: that states remaining in the same group in
+ nal are indistinguishable by any string, and that states winding up in
+di erent groups are distinguishable. The rst is an induction on i that
+if after the i th iteration of step (2) of Algorithm 3.39, s and t are in the
+same group, then there is no string of length i or less that distinguishes
+them. We shall leave the details of the induction to you.
+The second is an induction on i that if states s and t are placed in
+di erent groups at the i th iteration of step (2), then there is a string that
+distinguishes them. The basis, when s and t are placed in di erent groups
+of the initial partition, is easy: one must be accepting and the other not,
+so  distinguishes them. For the induction, there must be an input a and
+states p and q such that s and t go to states p and q , respectively, on input
+a . Moreover, p and q must already have been placed in di erent groups.
+Then by the inductive hypothesis, there is some string x that distinguishes
+p from q . Therefore, ax distinguishes s from t .
+METHOD:
+1. Start with an initial partition  with two groups, F and S , F , the
+accepting and nonaccepting states of D .
+2. Apply the procedure of Fig. 3.64 to construct a new partition  new .
+initially, let  new = ;
+for ( each group G of  ) f
+partition G into subgroups such that two states s and t
+are in the same subgroup if and only if for all
+input symbols a , states s and t have transitions on a
+to states in the same group of ;
+/* at worst, a state will be in a subgroup by itself */
+replace G in  new by the set of all subgroups formed;
+g
+Figure 3.64: Construction of  new
+3. If  new = , let  nal =  and continue with step (4). Otherwise, repeat
+step (2) with  new in place of .
+4. Choose one state in each group of  nal as the representative for that
+group. The representatives will be the states of the minimum-state DFA
+D 0 . The other components of D 0 are constructed as follows:OPTIMIZATION OF DFA-BASED PATTERN MATCHERS
+183
+Eliminating the Dead State
+The minimization algorithm sometimes produces a DFA with one dead
+state | one that is not accepting and transfers to itself on each input
+symbol. This state is technically needed, because a DFA must have a
+transition from every state on every symbol. However, as discussed in
+Section 3.8.3, we often want to know when there is no longer any possibility
+of acceptance, so we can establish that the proper lexeme has already been
+seen. Thus, we may wish to eliminate the dead state and use an automaton
+that is missing some transitions. This automaton has one fewer state than
+the minimum-state DFA, but is strictly speaking not a DFA, because of
+the missing transitions to the dead state.
+(a) The start state of D 0 is the representative of the group containing
+the start state of D .
+(b) The accepting states of D 0 are the representatives of those groups
+that contain an accepting state of D . Note that each group contains
+either only accepting states, or only nonaccepting states, because we
+started by separating those two classes of states, and the procedure
+of Fig. 3.64 always forms new groups that are subgroups of previously
+constructed groups.
+(c) Let s be the representative of some group G of  nal , and let the
+transition of D from s on input a be to state t . Let r be the rep-
+resentative of t 's group H . Then in D 0 , there is a transition from s
+to r on input a . Note that in D , every state in group G must go to
+some state of group H on input a , or else, group G would have been
+split according to Fig. 3.64.
+2
+Example 3.40: Let us reconsider the DFA of Fig. 3.36. The initial partition
+consists of the two groups f A; B; C; D gf E g , which are respectively the nonac-
+cepting states and the accepting states. To construct  new , the procedure of
+Fig. 3.64 considers both groups and inputs a and b . The group f E g cannot be
+split, because it has only one state, so f E g will remain intact in  new .
+The other group f A; B; C; D g can be split, so we must consider the e ect of
+each input symbol. On input a , each of these states goes to state B , so there
+is no way to distinguish these states using strings that begin with a . On input
+b , states A , B , and C go to members of group f A; B; C; D g , while state D goes
+to E , a member of another group. Thus, in  new , group f A; B; C; D g is split
+into f A; B; C gf D g , and  new for this round is f A; B; C gf D gf E g .CHAPTER 3. LEXICAL ANALYSIS
+184
+In the next round, we can split f A; B; C g into f A; C gf B g , since A and
+C each go to a member of f A; B; C g on input b , while B goes to a member of
+another group, f D g . Thus, after the second round,  new = f A; C gf B gf D gf E g .
+For the third round, we cannot split the one remaining group with more than
+one state, since A and C each go to the same state (and therefore to the same
+group) on each input. We conclude that  nal = f A; C gf B gf D gf E g .
+Now, we shall construct the minimum-state DFA. It has four states, corre-
+sponding to the four groups of  nal , and let us pick A , B , D , and E as the
+representatives of these groups. The initial state is A , and the only accepting
+state is E . Figure 3.65 shows the transition function for the DFA. For instance,
+the transition from state E on input b is to A , since in the original DFA, E goes
+to C on input b , and A is the representative of C 's group. For the same reason,
+the transition on b from state A is to A itself, while all other transitions are as
+in Fig. 3.36. 2
+S TATE
+A
+B
+D
+E
+a
+B
+B
+B
+B
+b
+A
+D
+E
+A
+Figure 3.65: Transition table of minimum-state DFA
+3.9.7 State Minimization in Lexical Analyzers
+To apply the state minimization procedure to the DFA's generated in Sec-
+tion 3.8.3, we must begin Algorithm 3.39 with the partition that groups to-
+gether all states that recognize a particular token, and also places in one group
+all those states that do not indicate any token. An example should make the
+extension clear.
+Example 3.41: For the DFA of Fig. 3.54, the initial partition is
+f 0137 ; 7 gf 247 gf 8 ; 58 gf 68 gf;g
+That is, states 0137 and 7 belong together because neither announces any token.
+States 8 and 58 belong together because they both announce token a  b + . Note
+that we have added a dead state ; , which we suppose has transitions to itself
+on inputs a and b . The dead state is also the target of missing transitions on a
+from states 8, 58, and 68.
+We must split 0137 from 7, because they go to di erent groups on input a .
+We also split 8 from 58, because they go to di erent groups on b . Thus, all
+states are in groups by themselves, and Fig. 3.54 is the minimum-state DFAOPTIMIZATION OF DFA-BASED PATTERN MATCHERS
+185
+recognizing its three tokens. Recall that a DFA serving as a lexical analyzer
+will normally drop the dead state, while we treat missing transitions as a signal
+to end token recognition. 2
+3.9.8 Trading Time for Space in DFA Simulation
+The simplest and fastest way to represent the transition function of a DFA is
+a two-dimensional table indexed by states and characters. Given a state and
+next input character, we access the array to nd the next state and any special
+action we must take, e.g., returning a token to the parser. Since a typical lexical
+analyzer has several hundred states in its DFA and involves the ASCII alphabet
+of 128 input characters, the array consumes less than a megabyte.
+However, compilers are also appearing in very small devices, where even
+a megabyte of storage may be too much. For such situations, there are many
+methods that can be used to compact the transition table. For instance, we can
+represent each state by a list of transitions | that is, character-state pairs |
+ended by a default state that is to be chosen for any input character not on the
+list. If we choose as the default the most frequently occurring next state, we
+can often reduce the amount of storage needed by a large factor.
+There is a more subtle data structure that allows us to combine the speed
+of array access with the compression of lists with defaults. We may think of
+this structure as four arrays, as suggested in Fig. 3.66. 5 The base array is used
+to determine the base location of the entries for state s , which are located in
+the next and check arrays. The default array is used to determine an alternative
+base location if the check array tells us the one given by base [ s ] is invalid.
+default
+s
+q
+base
+next check
+r t
+a
+Figure 3.66: Data structure for representing transition tables
+To compute nextState ( s; a ), the transition for state s on input a , we examine
+the next and check entries in location l = base [ s ]+ a , where character a is treated
+as an integer, presumably in the range 0 to 127. If check [ l ] = s , then this entry
+5 In practice, there would be another array indexed by states to give the action associated
+with that state, if any.CHAPTER 3. LEXICAL ANALYSIS
+186
+is valid, and the next state for state s on input a is next [ l ]. If check [ l ] 6 = s , then
+we determine another state t = default [ s ] and repeat the process as if t were
+the current state. More formally, the function nextState is de ned as follows:
+int nextState ( s; a ) f
+if ( check [ base [ s ] + a ] == s ) return next [ base [ s ] + a ];
+else return nextState ( default [ s ] ; a );
+g
+The intended use of the structure of Fig. 3.66 is to make the next-check
+arrays short by taking advantage of the similarities among states. For instance,
+state t , the default for state s , might be the state that says \we are working on
+an identi er," like state 10 in Fig. 3.14. Perhaps state s is entered after seeing
+the letters th , which are a pre x of keyword then as well as potentially being
+the pre x of some lexeme for an identi er. On input character e , we must go
+from state s to a special state that remembers we have seen the , but otherwise,
+state s behaves as t does. Thus, we set check [ base [ s ] + e ] to s (to con rm that
+this entry is valid for s ) and we set next [ base [ s ]+ e ] to the state that remembers
+the . Also, default [ s ] is set to t .
+While we may not be able to choose base values so that no next-check entries
+remain unused, experience has shown that the simple strategy of assigning base
+values to states in turn, and assigning each base [ s ] value the lowest integer so
+that the special entries for state s are not previously occupied utilizes little
+more space than the minimum possible.
+3.9.9 Exercises for Section 3.9
+Exercise 3.9.1: Extend the table of Fig. 3.58 to include the operators (a) ?
+and (b) + .
+Exercise 3.9.2: Use Algorithm 3.36 to convert the regular expressions of Ex-
+ercise 3.7.3 directly to deterministic nite automata.
+! Exercise 3.9.3: We can prove that two regular expressions are equivalent by
+showing that their minimum-state DFA's are the same up to renaming of states.
+Show
+in  this
+way that the following regular expressions: ( a j b )  , ( a  j b  )  , and
+,
+
+
+(  j a ) b are all equivalent. Note : You may have constructed the DFA's for
+these expressions in response to Exercise 3.7.3.
+! Exercise 3.9.4: Construct the minimum-state DFA's for the following regular
+expressions:
+a) ( a j b )  a ( a j b ).
+b) ( a j b )  a ( a j b )( a j b ).
+c) ( a j b )  a ( a j b )( a j b )( a j b ).3.10. SUMMARY OF CHAPTER 3
+187
+Do you see a pattern?
+!! Exercise 3.9.5: To make formal the informal claim of Example 3.25, show
+that any deterministic nite automaton for the regular expression
+( a j b )  a ( a j b )( a j b )    ( a j b )
+where ( a j b ) appears n , 1 times at the end, must have at least 2 n states. Hint :
+Observe the pattern in Exercise 3.9.4. What condition regarding the history of
+inputs does each state represent?
+3.10 Summary of Chapter 3
+✦ Tokens . The lexical analyzer scans the source program and produces as
+output a sequence of tokens, which are normally passed, one at a time to
+the parser. Some tokens may consist only of a token name while others
+may also have an associated lexical value that gives information about
+the particular instance of the token that has been found on the input.
+✦ Lexemes . Each time the lexical analyzer returns a token to the parser,
+it has an associated lexeme | the sequence of input characters that the
+token represents.
+✦ Bu ering . Because it is often necessary to scan ahead on the input in
+order to see where the next lexeme ends, it is usually necessary for the
+lexical analyzer to bu er its input. Using a pair of bu ers cyclicly and
+ending each bu er's contents with a sentinel that warns of its end are two
+techniques that accelerate the process of scanning the input.
+✦ Patterns . Each token has a pattern that describes which sequences of
+characters can form the lexemes corresponding to that token. The set
+of words, or strings of characters, that match a given pattern is called a
+language.
+✦ Regular Expressions . These expressions are commonly used to describe
+patterns. Regular expressions are built from single characters, using
+union, concatenation, and the Kleene closure, or any-number-of, oper-
+ator.
+✦ Regular De nitions . Complex collections of languages, such as the pat-
+terns that describe the tokens of a programming language, are often de-
+ned by a regular de nition, which is a sequence of statements that each
+de ne one variable to stand for some regular expression. The regular ex-
+pression for one variable can use previously de ned variables in its regular
+expression.188
+CHAPTER 3. LEXICAL ANALYSIS
+✦ Extended Regular-Expression Notation . A number of additional opera-
+tors may appear as shorthands in regular expressions, to make it easier
+to express patterns. Examples include the + operator (one-or-more-of),
+? (zero-or-one-of), and character classes (the union of the strings each
+consisting of one of the characters).
+✦ Transition Diagrams . The behavior of a lexical analyzer can often be
+described by a transition diagram. These diagrams have states, each
+of which represents something about the history of the characters seen
+during the current search for a lexeme that matches one of the possible
+patterns. There are arrows, or transitions, from one state to another,
+each of which indicates the possible next input characters that cause the
+lexical analyzer to make that change of state.
+✦ Finite Automata . These are a formalization of transition diagrams that
+include a designation of a start state and one or more accepting states,
+as well as the set of states, input characters, and transitions among
+states. Accepting states indicate that the lexeme for some token has been
+found. Unlike transition diagrams, nite automata can make transitions
+on empty input as well as on input characters.
+✦ Deterministic Finite Automata . A DFA is a special kind of nite au-
+tomaton that has exactly one transition out of each state for each input
+symbol. Also, transitions on empty input are disallowed. The DFA is
+easily simulated and makes a good implementation of a lexical analyzer,
+similar to a transition diagram.
+✦ Nondeterministic Finite Automata . Automata that are not DFA's are
+called nondeterministic. NFA's often are easier to design than are DFA's.
+Another possible architecture for a lexical analyzer is to tabulate all the
+states that NFA's for each of the possible patterns can be in, as we scan
+the input characters.
+✦ Conversion Among Pattern Representations . It is possible to convert any
+regular expression into an NFA of about the same size, recognizing the
+same language as the regular expression de nes. Further, any NFA can
+be converted to a DFA for the same pattern, although in the worst case
+(never encountered in common programming languages) the size of the
+automaton can grow exponentially. It is also possible to convert any non-
+deterministic or deterministic nite automaton into a regular expression
+that de nes the same language recognized by the nite automaton.
+✦ Lex . There is a family of software systems, including Lex and Flex ,
+that are lexical-analyzer generators. The user speci es the patterns for
+tokens using an extended regular-expression notation. Lex converts these
+expressions into a lexical analyzer that is essentially a deterministic nite
+automaton that recognizes any of the patterns.3.11. REFERENCES FOR CHAPTER 3
+✦
+189
+Minimization of Finite Automata . For every DFA there is a minimum-
+state DFA accepting the same language. Moreover, the minimum-state
+DFA for a given language is unique except for the names given to the
+various states.
+3.11 References for Chapter 3
+Regular expressions were rst developed by Kleene in the 1950's [9]. Kleene was
+interested in describing the events that could be represented by McCullough and
+Pitts' [12] nite-automaton model of neural activity. Since that time regular
+expressions and nite automata have become widely used in computer science.
+Regular expressions in various forms were used from the outset in many
+popular Unix utilities such as awk , ed , egrep , grep , lex , sed , sh , and vi . The
+IEEE 1003 and ISO/IEC 9945 standards documents for the Portable Operating
+System Interface (POSIX) de ne the POSIX extended regular expressions which
+are similar to the original Unix regular expressions with a few exceptions such
+as mnemonic representations for character classes. Many scripting languages
+such as Perl, Python, and Tcl have adopted regular expressions but often with
+incompatible extensions.
+The familiar nite-automaton model and the minimization of nite au-
+tomata, as in Algorithm 3.39, come from Hu man [6] and Moore [14]. Non-
+deterministic nite automata were rst proposed by Rabin and Scott [15]; the
+subset construction of Algorithm 3.20, showing the equivalence of deterministic
+and nondeterministic nite automata, is from there.
+McNaughton and Yamada [13] rst gave an algorithm to convert regular
+expressions directly to deterministic nite automata. Algorithm 3.36 described
+in Section 3.9 was rst used by Aho in creating the Unix regular-expression
+matching tool egrep . This algorithm was also used in the regular-expression
+pattern matching routines in awk [3]. The approach of using nondeterministic
+automata as an intermediary is due Thompson [17]. The latter paper also con-
+tains the algorithm for the direct simulation of nondeterministic nite automata
+(Algorithm 3.22), which was used by Thompson in the text editor QED .
+Lesk developed the rst version of Lex and then Lesk and Schmidt created
+a second version using Algorithm 3.36 [10]. Many variants of Lex have been
+subsequently implemented. The GNU version, Flex , can be downloaded, along
+with documentation at [4]. Popular Java versions of Lex include JFlex [7] and
+JLex [8].
+The KMP algorithm, discussed in the exercises to Section 3.4 just prior to
+Exercise 3.4.3, is from [11]. Its generalization to many keywords appears in [2]
+and was used by Aho in the rst implementation of the Unix utility fgrep .
+The theory of nite automata and regular expressions is covered in [5]. A
+survey of string-matching techniques is in [1].
+1. Aho, A. V., \Algorithms for nding patterns in strings," in Handbook of
+Theoretical Computer Science (J. van Leeuwen, ed.), Vol. A, Ch. 5, MIT190
+2.
+3.
+4.
+5.
+6.
+7.
+8.
+9.
+10.
+11.
+12.
+13.
+14.
+15.
+16.
+17.
+CHAPTER 3. LEXICAL ANALYSIS
+Press, Cambridge, 1990.
+Aho, A. V. and M. J. Corasick, \Ecient string matching: an aid to
+bibliographic search," Comm. ACM 18 :6 (1975), pp. 333{340.
+Aho, A. V., B. W. Kernighan, and P. J. Weinberger, The AWK Program-
+ming Language , Addison-Wesley, Boston, MA, 1988.
+Flex home page http://www.gnu.org/software/flex/ , Free Software
+Foundation.
+Hopcroft, J. E., R. Motwani, and J. D. Ullman, Introduction to Automata
+Theory, Languages, and Computation , Addison-Wesley, Boston MA, 2006.
+Hu man, D. A., \The synthesis of sequential machines," J. Franklin Inst.
+257 (1954), pp. 3{4, 161, 190, 275{303.
+JFlex home page http://jflex.de/ .
+http://www.cs.princeton.edu/~appel/modern/java/JLex .
+Kleene, S. C., \Representation of events in nerve nets," in [16], pp. 3{40.
+Lesk, M. E., \Lex { a lexical analyzer generator," Computing Science
+Tech. Report 39, Bell Laboratories, Murray Hill, NJ, 1975. A similar
+document with the same title but with E. Schmidt as a coauthor, appears
+in Vol. 2 of the Unix Programmer's Manual , Bell laboratories, Murray Hill
+NJ, 1975; see http://dinosaur.compilertools.net/lex/index.html .
+Knuth, D. E., J. H. Morris, and V. R. Pratt, \Fast pattern matching in
+strings," SIAM J. Computing 6 :2 (1977), pp. 323{350.
+McCullough, W. S. and W. Pitts, \A logical calculus of the ideas imma-
+nent in nervous activity," Bull. Math. Biophysics 5 (1943), pp. 115{133.
+McNaughton, R. and H. Yamada, \Regular expressions and state graphs
+for automata," IRE Trans. on Electronic Computers EC-9 :1 (1960), pp.
+38{47.
+Moore, E. F., \Gedanken experiments on sequential machines," in [16],
+pp. 129{153.
+Rabin, M. O. and D. Scott, \Finite automata and their decision prob-
+lems," IBM J. Res. and Devel. 3 :2 (1959), pp. 114{125.
+Shannon, C. and J. McCarthy (eds.), Automata Studies , Princeton Univ.
+Press, 1956.
+Thompson, K., \Regular expression search algorithm," Comm. ACM 11 :6
+(1968), pp. 419{422.Chapter 4
+Syntax Analysis
+This chapter is devoted to parsing methods that are typically used in compilers.
+We rst present the basic concepts, then techniques suitable for hand implemen-
+tation, and nally algorithms that have been used in automated tools. Since
+programs may contain syntactic errors, we discuss extensions of the parsing
+methods for recovery from common errors.
+By design, every programming language has precise rules that prescribe the
+syntactic structure of well-formed programs. In C, for example, a program is
+made up of functions, a function out of declarations and statements, a statement
+out of expressions, and so on. The syntax of programming language constructs
+can be speci ed by context-free grammars or BNF (Backus-Naur Form) nota-
+tion, introduced in Section 2.2. Grammars o er signi cant bene ts for both
+language designers and compiler writers.
+ A grammar gives a precise, yet easy-to-understand, syntactic speci cation
+of a programming language.
+ From certain classes of grammars, we can construct automatically an e-
+cient parser that determines the syntactic structure of a source program.
+As a side bene t, the parser-construction process can reveal syntactic
+ambiguities and trouble spots that might have slipped through the initial
+design phase of a language.
+ The structure imparted to a language by a properly designed grammar
+is useful for translating source programs into correct object code and for
+detecting errors.
+ A grammar allows a language to be evolved or developed iteratively, by
+adding new constructs to perform new tasks. These new constructs can
+be integrated more easily into an implementation that follows the gram-
+matical structure of the language.
+191CHAPTER 4. SYNTAX ANALYSIS
+192
+4.1 Introduction
+In this section, we examine the way the parser ts into a typical compiler. We
+then look at typical grammars for arithmetic expressions. Grammars for ex-
+pressions suce for illustrating the essence of parsing, since parsing techniques
+for expressions carry over to most programming constructs. This section ends
+with a discussion of error handling, since the parser must respond gracefully to
+nding that its input cannot be generated by its grammar.
+4.1.1 The Role of the Parser
+In our compiler model, the parser obtains a string of tokens from the lexical
+analyzer, as shown in Fig. 4.1, and veri es that the string of token names
+can be generated by the grammar for the source language. We expect the
+parser to report any syntax errors in an intelligible fashion and to recover from
+commonly occurring errors to continue processing the remainder of the program.
+Conceptually, for well-formed programs, the parser constructs a parse tree and
+passes it to the rest of the compiler for further processing. In fact, the parse
+tree need not be constructed explicitly, since checking and translation actions
+can be interspersed with parsing, as we shall see. Thus, the parser and the rest
+of the front end could well be implemented by a single module.
+source Lexical token
+program Analyzer get next
+token
+Parser
+parse
+tree
+Rest of intermediate
+Front End representation
+Symbol
+Table
+Figure 4.1: Position of parser in compiler model
+There are three general types of parsers for grammars: universal, top-down,
+and bottom-up. Universal parsing methods such as the Cocke-Younger-Kasami
+algorithm and Earley's algorithm can parse any grammar (see the bibliographic
+notes). These general methods are, however, too inecient to use in production
+compilers.
+The methods commonly used in compilers can be classi ed as being either
+top-down or bottom-up. As implied by their names, top-down methods build
+parse trees from the top (root) to the bottom (leaves), while bottom-up methods
+start from the leaves and work their way up to the root. In either case, the
+input to the parser is scanned from left to right, one symbol at a time.4.1. INTRODUCTION
+193
+The most ecient top-down and bottom-up methods work only for sub-
+classes of grammars, but several of these classes, particularly, LL and LR gram-
+mars, are expressive enough to describe most of the syntactic constructs in
+modern programming languages. Parsers implemented by hand often use LL
+grammars; for example, the predictive-parsing approach of Section 2.4.2 works
+for LL grammars. Parsers for the larger class of LR grammars are usually
+constructed using automated tools.
+In this chapter, we assume that the output of the parser is some represent-
+ation of the parse tree for the stream of tokens that comes from the lexical
+analyzer. In practice, there are a number of tasks that might be conducted
+during parsing, such as collecting information about various tokens into the
+symbol table, performing type checking and other kinds of semantic analysis,
+and generating intermediate code. We have lumped all of these activities into
+the \rest of the front end" box in Fig. 4.1. These activities will be covered in
+detail in subsequent chapters.
+4.1.2 Representative Grammars
+Some of the grammars that will be examined in this chapter are presented here
+for ease of reference. Constructs that begin with keywords like while or int , are
+relatively easy to parse, because the keyword guides the choice of the grammar
+production that must be applied to match the input. We therefore concentrate
+on expressions, which present more of challenge, because of the associativity
+and precedence of operators.
+Associativity and precedence are captured in the following grammar, which
+is similar to ones used in Chapter 2 for describing expressions, terms, and
+factors. E represents expressions consisting of terms separated by + signs, T
+represents terms consisting of factors separated by * signs, and F represents
+factors that can be either parenthesized expressions or identi ers:
+E ! E + T j T
+T ! T  F j F
+F ! ( E ) j id
+(4.1)
+Expression grammar (4.1) belongs to the class of LR grammars that are suitable
+for bottom-up parsing. This grammar can be adapted to handle additional
+operators and additional levels of precedence. However, it cannot be used for
+top-down parsing because it is left recursive.
+The following non-left-recursive variant of the expression grammar (4.1) will
+be used for top-down parsing:
+E
+E 0
+T
+T 0
+F
+!
+!
+!
+!
+!
+T E 0
++ T E 0 j 
+F T 0
+ F T 0 j 
+( E ) j id
+(4.2)CHAPTER 4. SYNTAX ANALYSIS
+194
+The following grammar treats + and  alike, so it is useful for illustrating
+techniques for handling ambiguities during parsing:
+E ! E + E j E  E j ( E ) j id
+(4.3)
+Here, E represents expressions of all types. Grammar (4.3) permits more than
+one parse tree for expressions like a + b  c .
+4.1.3 Syntax Error Handling
+The remainder of this section considers the nature of syntactic errors and gen-
+eral strategies for error recovery. Two of these strategies, called panic-mode and
+phrase-level recovery, are discussed in more detail in connection with speci c
+parsing methods.
+If a compiler had to process only correct programs, its design and implemen-
+tation would be simpli ed greatly. However, a compiler is expected to assist
+the programmer in locating and tracking down errors that inevitably creep into
+programs, despite the programmer's best e orts. Strikingly, few languages have
+been designed with error handling in mind, even though errors are so common-
+place. Our civilization would be radically di erent if spoken languages had
+the same requirements for syntactic accuracy as computer languages. Most
+programming language speci cations do not describe how a compiler should
+respond to errors; error handling is left to the compiler designer. Planning the
+error handling right from the start can both simplify the structure of a compiler
+and improve its handling of errors.
+Common programming errors can occur at many di erent levels.
+ Lexical errors include misspellings of identi ers, keywords, or operators |
+e.g., the use of an identi er elipseSize instead of ellipseSize | and
+missing quotes around text intended as a string.
+ Syntactic errors include misplaced semicolons or extra or missing braces;
+that is, \ { " or \ } ." As another example, in C or Java, the appearance
+of a case statement without an enclosing switch is a syntactic error
+(however, this situation is usually allowed by the parser and caught later
+in the processing, as the compiler attempts to generate code).
+ Semantic errors include type mismatches between operators and operands,
+e.g., the return of a value in a Java method with result type void .
+ Logical errors can be anything from incorrect reasoning on the part of
+the programmer to the use in a C program of the assignment operator =
+instead of the comparison operator == . The program containing = may
+be well formed; however, it may not re ect the programmer's intent.
+The precision of parsing methods allows syntactic errors to be detected very
+eciently. Several parsing methods, such as the LL and LR methods, detect4.1. INTRODUCTION
+195
+an error as soon as possible; that is, when the stream of tokens from the lexical
+analyzer cannot be parsed further according to the grammar for the language.
+More precisely, they have the viable-pre x property , meaning that they detect
+that an error has occurred as soon as they see a pre x of the input that cannot
+be completed to form a string in the language.
+Another reason for emphasizing error recovery during parsing is that many
+errors appear syntactic, whatever their cause, and are exposed when parsing
+cannot continue. A few semantic errors, such as type mismatches, can also be
+detected eciently; however, accurate detection of semantic and logical errors
+at compile time is in general a dicult task.
+The error handler in a parser has goals that are simple to state but chal-
+lenging to realize:
+ Report the presence of errors clearly and accurately.
+ Recover from each error quickly enough to detect subsequent errors.
+ Add minimal overhead to the processing of correct programs.
+Fortunately, common errors are simple ones, and a relatively straightforward
+error-handling mechanism often suces.
+How should an error handler report the presence of an error? At the very
+least, it must report the place in the source program where an error is detected,
+because there is a good chance that the actual error occurred within the previous
+few tokens. A common strategy is to print the o ending line with a pointer to
+the position at which an error is detected.
+4.1.4 Error-Recovery Strategies
+Once an error is detected, how should the parser recover? Although no strategy
+has proven itself universally acceptable, a few methods have broad applicabil-
+ity. The simplest approach is for the parser to quit with an informative error
+message when it detects the rst error. Additional errors are often uncovered
+if the parser can restore itself to a state where processing of the input can con-
+tinue with reasonable hopes that the further processing will provide meaningful
+diagnostic information. If errors pile up, it is better for the compiler to give
+up after exceeding some error limit than to produce an annoying avalanche of
+\spurious" errors.
+The balance of this section is devoted to the following recovery strategies:
+panic-mode, phrase-level, error-productions, and global-correction.
+Panic-Mode Recovery
+With this method, on discovering an error, the parser discards input symbols
+one at a time until one of a designated set of synchronizing tokens is found.
+The synchronizing tokens are usually delimiters, such as semicolon or } , whose
+role in the source program is clear and unambiguous. The compiler designer196
+CHAPTER 4. SYNTAX ANALYSIS
+must select the synchronizing tokens appropriate for the source language. While
+panic-mode correction often skips a considerable amount of input without check-
+ing it for additional errors, it has the advantage of simplicity, and, unlike some
+methods to be considered later, is guaranteed not to go into an in nite loop.
+Phrase-Level Recovery
+On discovering an error, a parser may perform local correction on the remaining
+input; that is, it may replace a pre x of the remaining input by some string that
+allows the parser to continue. A typical local correction is to replace a comma
+by a semicolon, delete an extraneous semicolon, or insert a missing semicolon.
+The choice of the local correction is left to the compiler designer. Of course,
+we must be careful to choose replacements that do not lead to in nite loops, as
+would be the case, for example, if we always inserted something on the input
+ahead of the current input symbol.
+Phrase-level replacement has been used in several error-repairing compilers,
+as it can correct any input string. Its major drawback is the diculty it has in
+coping with situations in which the actual error has occurred before the point
+of detection.
+Error Productions
+By anticipating common errors that might be encountered, we can augment the
+grammar for the language at hand with productions that generate the erroneous
+constructs. A parser constructed from a grammar augmented by these error
+productions detects the anticipated errors when an error production is used
+during parsing. The parser can then generate appropriate error diagnostics
+about the erroneous construct that has been recognized in the input.
+Global Correction
+Ideally, we would like a compiler to make as few changes as possible in processing
+an incorrect input string. There are algorithms for choosing a minimal sequence
+of changes to obtain a globally least-cost correction. Given an incorrect input
+string x and grammar G , these algorithms will nd a parse tree for a related
+string y , such that the number of insertions, deletions, and changes of tokens
+required to transform x into y is as small as possible. Unfortunately, these
+methods are in general too costly to implement in terms of time and space, so
+these techniques are currently only of theoretical interest.
+Do note that a closest correct program may not be what the programmer had
+in mind. Nevertheless, the notion of least-cost correction provides a yardstick
+for evaluating error-recovery techniques, and has been used for nding optimal
+replacement strings for phrase-level recovery.4.2. CONTEXT-FREE GRAMMARS
+197
+4.2 Context-Free Grammars
+Grammars were introduced in Section 2.2 to systematically describe the syntax
+of programming language constructs like expressions and statements. Using
+a syntactic variable stmt to denote statements and variable expr to denote
+expressions, the production
+stmt ! if ( expr ) stmt else stmt
+(4.4)
+speci es the structure of this form of conditional statement. Other productions
+then de ne precisely what an expr is and what else a stmt can be.
+This section reviews the de nition of a context-free grammar and introduces
+terminology for talking about parsing. In particular, the notion of derivations
+is very helpful for discussing the order in which productions are applied during
+parsing.
+4.2.1 The Formal De nition of a Context-Free Grammar
+From Section 2.2, a context-free grammar (grammar for short) consists of ter-
+minals, nonterminals, a start symbol, and productions.
+1. Terminals are the basic symbols from which strings are formed. The term
+\token name" is a synonym for \terminal" and frequently we will use the
+word \token" for terminal when it is clear that we are talking about just
+the token name. We assume that the terminals are the rst components
+of the tokens output by the lexical analyzer. In (4.4), the terminals are
+the keywords if and else and the symbols \ ( " and \ ) ."
+2. Nonterminals are syntactic variables that denote sets of strings. In (4.4),
+stmt and expr are nonterminals. The sets of strings denoted by nontermi-
+nals help de ne the language generated by the grammar. Nonterminals
+impose a hierarchical structure on the language that is key to syntax
+analysis and translation.
+3. In a grammar, one nonterminal is distinguished as the start symbol , and
+the set of strings it denotes is the language generated by the grammar.
+Conventionally, the productions for the start symbol are listed rst.
+4. The productions of a grammar specify the manner in which the termi-
+nals and nonterminals can be combined to form strings. Each production
+consists of:
+(a) A nonterminal called the head or left side of the production; this
+production de nes some of the strings denoted by the head.
+(b) The symbol ! . Sometimes ::= has been used in place of the arrow.
+(c) A body or right side consisting of zero or more terminals and non-
+terminals. The components of the body describe one way in which
+strings of the nonterminal at the head can be constructed.CHAPTER 4. SYNTAX ANALYSIS
+198
+Example 4.5: The grammar in Fig. 4.2 de nes simple arithmetic expressions.
+In this grammar, the terminal symbols are
+id +
+- * / ( )
+The nonterminal symbols are expression , term and factor , and expression is the
+start symbol 2
+expression
+expression
+expression
+term
+term
+term
+factor
+factor
+!
+!
+!
+!
+!
+!
+!
+!
+expression + term
+expression - term
+term
+term * factor
+term / factor
+factor
+( expression )
+id
+Figure 4.2: Grammar for simple arithmetic expressions
+4.2.2 Notational Conventions
+To avoid always having to state that \these are the terminals," \these are the
+nonterminals," and so on, the following notational conventions for grammars
+will be used throughout the remainder of this book.
+1. These symbols are terminals:
+(a) Lowercase letters early in the alphabet, such as a , b , c .
+(b) Operator symbols such as +,  , and so on.
+(c) Punctuation symbols such as parentheses, comma, and so on.
+(d) The digits 0 ; 1 ; : : : ; 9.
+(e) Boldface strings such as id or if , each of which represents a single
+terminal symbol.
+2. These symbols are nonterminals:
+(a) Uppercase letters early in the alphabet, such as A , B , C .
+(b) The letter S , which, when it appears, is usually the start symbol.
+(c) Lowercase, italic names such as expr or stmt .
+(d) When discussing programming constructs, uppercase letters may be
+used to represent nonterminals for the constructs. For example, non-
+terminals for expressions, terms, and factors are often represented by
+E , T , and F , respectively.4.2. CONTEXT-FREE GRAMMARS
+199
+3. Uppercase letters late in the alphabet, such as X , Y , Z , represent grammar
+symbols ; that is, either nonterminals or terminals.
+4. Lowercase letters late in the alphabet, chie y u; v; : : : ; z , represent (pos-
+sibly empty) strings of terminals.
+5. Lowercase Greek letters, , , for example, represent (possibly empty)
+strings of grammar symbols. Thus, a generic production can be written
+as A ! , where A is the head and the body.
+6. A set of productions A ! 1 ; A ! 2 ; : : : ; A ! k with a common head
+A (call them A - productions ), may be written A ! 1 j 2 j    j k . Call
+1 ; 2 ; : : : ; k the alternatives for A .
+7. Unless stated otherwise, the head of the rst production is the start sym-
+bol.
+Example 4.6: Using these conventions, the grammar of Example 4.5 can be
+rewritten concisely as
+E ! E + T j E , T j T
+T ! T  F j T =F j F
+F ! ( E ) j id
+The notational conventions tell us that E , T , and F are nonterminals, with E
+the start symbol. The remaining symbols are terminals. 2
+4.2.3 Derivations
+The construction of a parse tree can be made precise by taking a derivational
+view, in which productions are treated as rewriting rules. Beginning with the
+start symbol, each rewriting step replaces a nonterminal by the body of one of its
+productions. This derivational view corresponds to the top-down construction
+of a parse tree, but the precision a orded by derivations will be especially helpful
+when bottom-up parsing is discussed. As we shall see, bottom-up parsing is
+related to a class of derivations known as \rightmost" derivations, in which the
+rightmost nonterminal is rewritten at each step.
+For example, consider the following grammar, with a single nonterminal E ,
+which adds a production E ! , E to the grammar (4.3):
+E ! E + E j E  E j , E j ( E ) j id
+(4.7)
+The production E ! , E signi es that if E denotes an expression, then , E
+must also denote an expression. The replacement of a single E by , E will be
+described by writing
+E ) , E200
+CHAPTER 4. SYNTAX ANALYSIS
+which is read, \ E derives , E ." The production E ! ( E ) can be applied
+to replace any instance of E in any string of grammar symbols by ( E ), e.g.,
+E  E ) ( E )  E or E  E ) E  ( E ). We can take a single E and repeatedly
+apply productions in any order to get a sequence of replacements. For example,
+E ) , E ) , ( E ) ) , ( id )
+We call such a sequence of replacements a derivation of , ( id ) from E . This
+derivation provides a proof that the string , ( id ) is one particular instance of
+an expression.
+For a general de nition of derivation, consider a nonterminal A in the middle
+of a sequence of grammar symbols, as in A , where and are arbitrary
+strings of grammar symbols. Suppose A ! is a production. Then, we write
+A ) . The symbol ) means, \derives in one step." When a sequence
+of derivation steps 1 ) 2 )    ) n rewrites 1 to n , we say 1 derives
+\derives in zero or more steps." For this purpose,
+n . Often, we wish to say,
+ . Thus,
+we can use the symbol )
+ , for any string , and
+)
+ and ) , then )
+ .
+2. If )
++ means, \derives in one or more steps."
+Likewise,  )
+If S ) , where S is the start symbol of a grammar G , we say that is a
+1.
+sentential form of G . Note that a sentential form may contain both terminals
+and nonterminals, and may be empty. A sentence of G is a sentential form with
+no nonterminals. The language generated by a grammar is its set of sentences.
+Thus, a string of terminals w is in L ( G ), the language generated by G , if and
+ w ). A language that can be generated by
+only if w is a sentence of G (or S )
+a grammar is said to be a context-free language . If two grammars generate the
+same language, the grammars are said to be equivalent .
+The string , ( id + id ) is a sentence of grammar (4.7) because there is a
+derivation
+E ) , E ) , ( E ) ) , ( E + E ) ) , ( id + E ) ) , ( id + id )
+(4.8)
+The strings E; , E; , ( E ) ; : : : ; , ( id + id ) are all sentential forms of this gram-
+ , ( id + id ) to indicate that , ( id + id ) can be derived
+mar. We write E )
+from E .
+At each step in a derivation, there are two choices to be made. We need
+to choose which nonterminal to replace, and having made this choice, we must
+pick a production with that nonterminal as head. For example, the following
+alternative derivation of , ( id + id ) di ers from derivation (4.8) in the last two
+steps:
+E ) , E ) , ( E ) ) , ( E + E ) ) , ( E + id ) ) , ( id + id )
+(4.9)4.2. CONTEXT-FREE GRAMMARS
+201
+Each nonterminal is replaced by the same body in the two derivations, but the
+order of replacements is di erent.
+To understand how parsers work, we shall consider derivations in which the
+nonterminal to be replaced at each step is chosen as follows:
+1. In leftmost derivations, the leftmost nonterminal in each sentential is al-
+ways chosen. If ) is a step in which the leftmost nonterminal in is
+replaced, we write ) .
+lm
+2. In rightmost derivations, the rightmost nonterminal is always chosen; we
+write ) in this case.
+rm
+Derivation (4.8) is leftmost, so it can be rewritten as
+E lm
+) , E lm
+) , ( E ) lm
+) , ( E + E ) lm
+) , ( id + E ) lm
+) , ( id + id )
+Note that (4.9) is a rightmost derivation.
+Using our notational conventions, every leftmost step can be written as
+wA lm
+) w , where w consists of terminals only, A !  is the production
+applied, and is a string of grammar  symbols. To
+that derives
+ emphasize
+by a leftmost derivation, we write ) . If S )
+, then we say that is a
+lm
+lm
+left-sentential form of the grammar at hand.
+Analogous de nitions hold for rightmost derivations. Rightmost derivations
+are sometimes called canonical derivations.
+4.2.4 Parse Trees and Derivations
+A parse tree is a graphical representation of a derivation that lters out the
+order in which productions are applied to replace nonterminals. Each interior
+node of a parse tree represents the application of a production. The interior
+node is labeled with the nonterminal A in the head of the production; the
+children of the node are labeled, from left to right, by the symbols in the body
+of the production by which this A was replaced during the derivation.
+For example, the parse tree for , ( id + id ) in Fig. 4.3, results from the
+derivation (4.8) as well as derivation (4.9).
+The leaves of a parse tree are labeled by nonterminals or terminals and, read
+from left to right, constitute a sentential form, called the yield or frontier of the
+tree.
+To see the relationship between derivations and parse trees, consider any
+derivation 1 ) 2 )    ) n , where 1 is a single nonterminal A . For each
+sentential form i in the derivation, we can construct a parse tree whose yield
+is i . The process is an induction on i .
+BASIS: The tree for 1 = A is a single node labeled A .CHAPTER 4. SYNTAX ANALYSIS
+202
+E
+,
+E
+( E )
+E + E
+id
+id
+Figure 4.3: Parse tree for , ( id + id )
+INDUCTION: Suppose we already have constructed a parse tree with yield
+i , 1 = X 1 X 2    X k (note that according to our notational conventions, each
+grammar symbol X i is either a nonterminal or a terminal). Suppose i is
+derived from i , 1 by replacing X j , a nonterminal, by = Y 1 Y 2    Y m . That
+is, at the i th step of the derivation, production X j ! is applied to i , 1 to
+derive i = X 1 X 2    X j , 1 X j +1    X k .
+To model this step of the derivation, nd the j th non-  leaf from the left
+in the current parse tree. This leaf is labeled X j . Give this leaf m children,
+labeled Y 1 ; Y 2 ; : : : ; Y m , from the left. As a special case, if m = 0, then =  ,
+and we give the j th leaf one child labeled  .
+Example 4.10: The sequence of parse trees constructed from the derivation
+(4.8) is shown in Fig. 4.4. In the rst step of the derivation, E ) , E . To
+model this step, add two children, labeled , and E , to the root E of the initial
+tree. The result is the second tree.
+In the second step of the derivation, , E ) , ( E ). Consequently, add three
+children, labeled ( , E , and ) , to the leaf labeled E of the second tree, to
+obtain the third tree with yield , ( E ). Continuing in this fashion we obtain the
+complete parse tree as the sixth tree. 2
+Since a parse tree ignores variations in the order in which symbols in senten-
+tial forms are replaced, there is a many-to-one relationship between derivations
+and parse trees. For example, both derivations (4.8) and (4.9), are associated
+with the same nal parse tree of Fig. 4.4.
+In what follows, we shall frequently parse by producing a leftmost or a
+rightmost derivation, since there is a one-to-one relationship between parse
+trees and either leftmost or rightmost derivations. Both leftmost and rightmost
+derivations pick a particular order for replacing symbols in sentential forms, so
+they too lter out variations in the order. It is not hard to show that every parse
+tree has associated with it a unique leftmost and a unique rightmost derivation.4.2. CONTEXT-FREE GRAMMARS
+)
+E
+203
+)
+E
+,
+E
+,
+E
+E
+(
+)
+)
+E
+,
+,
+E
+)
+E
+)
+E
+,
+E
+E
+E
+( E ) ( E ) ( E )
+E + E E + E E + E
+id
+id
+id
+Figure 4.4: Sequence of parse trees for derivation (4.8)
+4.2.5 Ambiguity
+From Section 2.2.4, a grammar that produces more than one parse tree for some
+sentence is said to be ambiguous . Put another way, an ambiguous grammar is
+one that produces more than one leftmost derivation or more than one rightmost
+derivation for the same sentence.
+Example 4.11: The arithmetic expression grammar (4.3) permits two distinct
+leftmost derivations for the sentence id + id  id :
+E ) E + E
+E ) E  E
+) id + E
+) E + E  E
+) id + E  E
+) id + E  E
+) id + id  E
+) id + id  E
+) id + id  id
+) id + id  id
+The corresponding parse trees appear in Fig. 4.5.
+Note that the parse tree of Fig. 4.5(a) re ects the commonly assumed prece-
+dence of + and * , while the tree of Fig. 4.5(b) does not. That is, it is customary
+to treat operator * as having higher precedence than + , corresponding to the
+fact that we would normally evaluate an expression like a + b  c as a + ( b  c ),
+rather than as ( a + b )  c . 2
+For most parsers, it is desirable that the grammar be made unambiguous,
+for if it is not, we cannot uniquely determine which parse tree to select for a
+sentence. In other cases, it is convenient to use carefully chosen ambiguous
+grammars, together with disambiguating rules that \throw away" undesirable
+parse trees, leaving only one tree for each sentence.CHAPTER 4. SYNTAX ANALYSIS
+204
+E
+E
+E + E
+id E 
+id
+E E
+id id
+(a)
+E  E
++ E id
+id
+(b)
